@@ -14,3 +14,6 @@ Once you have your rtf files, download the repository and run the Tuto notebook 
 See requirements.txt to create the corresponding environment.
 
 Enjoy and let me know if you have any remark or question.
+
+PS : I have trouble with showing altair stuff (for TF-IDF and topic modeling dispplaying for instance), the altair_viewer.show() from the altair_viewer library does not work.
+The only I found to display is therefore to let the notebook displaying it by simply run the cell with the variable.
