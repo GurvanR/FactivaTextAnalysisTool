@@ -20,14 +20,15 @@ def make_date_filter(df: pd.DataFrame, start_date: str, end_date: str = None, co
     filtered_df = df[filter]
     """
     if end_date is not None and start_date is not None :
-        filter = df[column] >= start_date and (df[column] <= end_date)
+        filter = (df[column] >= start_date) & (df[column] <= end_date)
     elif end_date is None :
         filter = df[column] >= start_date
     else : 
         filter = df[column] <= end_date
     return filter
 
-def make_words_filter(df: pd.DataFrame, words_to_match: list[str], column: str = "LPTD", separator: str = '|', case: bool = False) -> filter : 
+def make_words_filter(  df: pd.DataFrame, words_to_match: list[str] = [], words_to_ban: list[str] = [],
+                        column: str = "LPTD", match_separator: str = '|', ban_separator: str = '|', case: bool = False) -> filter : 
     """
     Create a word filter.
     
@@ -35,8 +36,9 @@ def make_words_filter(df: pd.DataFrame, words_to_match: list[str], column: str =
     - df (DataFrame): Input DataFrame.
     - words_to_match (list[str]) : List of words
     - column (str): Name of the column containing the words you want to filter (default: 'LPTD').
-    - separator (str) : If you want the article having all the words ('&') or at least one of them ('|').
-                        Default is ('|').
+    - match_separator (str) : If you want the article having all the words ('&') or at least one of them ('|').
+                        Default is '|'. 
+    - ban_separator (str) : Same but for discarding words.
     - case (bool) : If you want the case to be respected (default : False).
 
     Returns:
@@ -44,15 +46,24 @@ def make_words_filter(df: pd.DataFrame, words_to_match: list[str], column: str =
     To use this filter on your DataFrame df : 
     filtered_df = df[filter]
     """
-    
-    pattern = separator.join(words_to_match)
-    filter_df = df[column].str.contains(pattern, case=case)
-    return filter_df
+    filtered_df = df.copy()
+    match_filter_df = pd.Series(True, index=filtered_df.index)
+    ban_filter_df = pd.Series(True, index=filtered_df.index)
+
+    if words_to_match :
+        match_pattern = match_separator.join(words_to_match)
+        match_filter_df = filtered_df[column].str.contains(match_pattern, case=case)
+    if words_to_ban :
+        ban_pattern = ban_separator.join(words_to_ban)
+        ban_filter_df = ~filtered_df[column].str.contains(ban_pattern, case=case)
+
+    return match_filter_df & ban_filter_df
 
 def count_article(  df: pd.DataFrame, 
-                    start_date: str = None, words_to_match: list[str] = [], 
+                    start_date: str = None, words_to_match: list[str] = [], words_to_ban: list[str] = [],
                     end_date: str = None, date_column : str = 'PD', words_column:str = 'LPTD', 
-                    separator: str = '|', case: bool = False, time_unity: list[str] = ['Year', 'Month'],
+                    match_separator: str = '|',  ban_separator: str = '|', 
+                    case: bool = False, time_unity: list[str] = ['Year', 'Month'],
                     plot: str = True, topic = 'AI Safety'
                     ) -> list :    
    
@@ -80,8 +91,8 @@ def count_article(  df: pd.DataFrame,
         period_filter = make_date_filter(new_df, start_date, end_date, date_column)
         new_df = new_df[period_filter]
     
-    if words_to_match :
-        words_filter = make_words_filter(new_df, words_to_match, words_column, separator, case)
+    if words_to_match or words_to_ban :
+        words_filter = make_words_filter(new_df, words_to_match, words_to_ban, words_column, match_separator, ban_separator, case)
         new_df = new_df[words_filter]
     
     final_df = new_df
@@ -142,9 +153,11 @@ def count_article(  df: pd.DataFrame,
     return final_df
 
 def time_group_articles(  df: pd.DataFrame, 
-                    start_date: str = None, words_to_match: list[str] = [], 
+                    start_date: str = None, 
+                    words_to_match: list[str] = [], words_to_ban: list[str] = [], 
                     end_date: str = None, date_column : str = 'PD', words_column:str = 'LPTD', 
-                    separator: str = '|', case: bool = False, time_unity: str = 'Year',
+                    match_separator: str = '|', ban_separator: str = '|',
+                    case: bool = False, time_unity: str = 'Year',
                     ) -> list :    
    
     """
@@ -170,8 +183,8 @@ def time_group_articles(  df: pd.DataFrame,
         period_filter = make_date_filter(new_df, start_date, end_date, date_column)
         new_df = new_df[period_filter]
     
-    if words_to_match :
-        words_filter = make_words_filter(new_df, words_to_match, words_column, separator, case)
+    if words_to_match or words_to_ban :
+        words_filter = make_words_filter(new_df, words_to_match, words_to_ban, words_column, match_separator, ban_separator, case)
         new_df = new_df[words_filter]
     
     if time_unity == 'Year' :
@@ -232,7 +245,7 @@ def plot_TF_IDF(top_tfidf, words_in_column: bool = True, red_dotted_terms: list[
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-def stopwords_from_path(stopwords_path, split = '|') :
+def stopwords_from_path(stopwords_path, split = ',') :
     stop_word_text = open(stopwords_path)
     content = stop_word_text.read()
     return content.split(split)
@@ -240,21 +253,17 @@ def stopwords_from_path(stopwords_path, split = '|') :
 
 def TF_IDF_Factiva( df: pd.DataFrame, 
                     index_column: str = 'Year', text_column: str = 'LPTD',
-                    words_in_column: bool = True, stop_words: list[str] = 'english',
+                    words_in_column: bool = True, stop_words: str = 'english',
                     top_k: int = 15,
                     plot: bool = True, red_dotted_terms: list[str] = []) :
     """
     Please make sure all your columns have string items (if it is years for instance).
 
     stop_words : 
-        - 'english' : standard set of skilearn english stopwords
-        - 'medium' : set of 1.300 english stopwords.
-        - 'large' : set of 10.000 english stopwords.
+        - 'english' (default): standard set of skilearn english stopwords
+        - a path to another file of stopwords.
     """
-    if stop_words == 'large': 
-        stop_words = stopwords_from_path('Large_english_stopwords_set.txt')
-    if stop_words == 'medium': 
-        stop_words = stopwords_from_path('Medium_english_stopwords_set.txt')
+    if stop_words != 'english': stop_words = stopwords_from_path(stop_words)
     
     tfidf_vectorizer = TfidfVectorizer(input='content', analyzer='word', stop_words= stop_words, smooth_idf=True, norm='l2')
 
@@ -317,7 +326,7 @@ def plot_topics(components, terms, top_k=10, red_dotted_terms=[]):
         text='term:N',
         color=alt.condition(
             alt.FieldOneOfPredicate(field='term', oneOf=term_list),
-            alt.value('red'),
+            alt.value('black'),
             alt.value('black')
         )
     )
@@ -331,22 +340,19 @@ from sklearn.decomposition import LatentDirichletAllocation
 from nltk.tokenize import RegexpTokenizer
 
 def LDA_Topic_Modeling( df: pd.DataFrame, 
-                    index_column: str = 'Year', text_column: str = 'LPTD',
-                    words_in_column: bool = True, stop_words: list[str] = 'english',
+                    text_column: str = 'LPTD', stop_words: str = 'english',
                     top_k: int = 15, n_topics = 5,
                     plot: bool = True, red_dotted_terms: list[str] = []):
     """
+    Latent Dirichlet Allocation Topic Modeling
+
     Please make sure all your columns have string items (if it is years for instance).
 
-    stop_words : 
-        - 'english' : standard set of skilearn english stopwords
-        - 'medium' : set of 1.300 english stopwords.
-        - 'large' : set of 10.000 english stopwords.
+    stop_words can either be : 
+        - 'english' (default): standard set of skilearn english stopwords
+        - A path to another file of stopwords.
     """
-    if stop_words == 'large': 
-        stop_words = stopwords_from_path('Large_english_stopwords_set.txt')
-    if stop_words == 'medium': 
-        stop_words = stopwords_from_path('Medium_english_stopwords_set.txt')
+    if stop_words != 'english': stop_words = stopwords_from_path(stop_words)
 
     tokenizer = RegexpTokenizer(r'\w+')
 
