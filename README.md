@@ -1,19 +1,16 @@
 # FactivaTextAnalysisTool
+
 Python text-analysis pseudo library specifically made to manipulate files from the Factiva database.
 
-First download rtf files from the Factiva database : https://www.dowjones.com/professional/factiva/
-which you can freely access if your are student in a ENS for instance, via this link (search for factiva) : 
-https://bib.ens.psl.eu/ulm-lsh-jourdan-shs/collections/liste-des-bases-de-donnees-et-bouquets-de-revues-et-de-books-en
+- First download rtf files from the Factiva database: [Factiva Database](https://www.dowjones.com/professional/factiva/). You can freely access it if you are a student in an ENS, for instance, via this [link](https://bib.ens.psl.eu/ulm-lsh-jourdan-shs/collections/liste-des-bases-de-donnees-et-bouquets-de-revues-et-de-books-en). Search for 'factiva' in the provided link.
+  - Note that you can download only 100 articles at a time from this database, making the collecting process a bit lengthy.
+  - Ensure you download rtf files in the correct format, which is the "Article Format." Test the analysis with a batch of 100 articles before downloading more articles.
 
-Note that you can download only 100 by 100 the articles in that database, which makes the collecting process a bit long and annoying.
+- Once you have your rtf files, download the repository and run the Tuto notebook to explore the functionalities available for factiva files.
 
-Also note that you have to download **rtf** files and in the **good format** which is "Article Format" (try analyse with one batch of 100 articles before download furthermore articles)
+- See requirements.txt to create the corresponding environment necessary for running the code.
 
-Once you have your rtf files, download the repository and run the Tuto notebook to see what you can do with factiva files.
+- Enjoy exploring the functionalities and feel free to reach out if you have any remarks or questions.
 
-See requirements.txt to create the corresponding environment.
+PS: There might be trouble displaying Altair stuff (for TF-IDF and topic modeling, for instance). The `altair_viewer.show()` from the `altair_viewer` library may not work. The only workaround found is to let the notebook display it by simply running the cell with the variable.
 
-Enjoy and let me know if you have any remark or question.
-
-PS : I have trouble with showing altair stuff (for TF-IDF and topic modeling dispplaying for instance), the altair_viewer.show() from the altair_viewer library does not work.
-The only I found to display is therefore to let the notebook displaying it by simply run the cell with the variable.
